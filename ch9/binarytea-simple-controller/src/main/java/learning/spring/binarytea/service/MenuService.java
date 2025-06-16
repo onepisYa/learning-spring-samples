@@ -22,7 +22,7 @@ public class MenuService {
     @Autowired
     private MenuRepository menuRepository;
 
-    @Cacheable
+    @Cacheable(key="#root.methodName")
     public List<MenuItem> getAllMenu() {
         return menuRepository.findAll();
     }
