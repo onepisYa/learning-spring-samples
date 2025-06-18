@@ -38,28 +38,43 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                    .antMatchers("/").permitAll()
-                    .mvcMatchers("/actuator/*").permitAll()
-                    .anyRequest().authenticated().and()
-                .formLogin() // 使用表单登录
-                    .loginPage("/login").permitAll() // 设置登录页地址，全员可访问
-                    .defaultSuccessUrl("/order")
-                    .failureUrl("/login")
-                    .loginProcessingUrl("/doLogin")
-                    .usernameParameter("user")
-                    .passwordParameter("pwd").and()
-                .httpBasic().and() // 使用HTTP Basic认证
+                .antMatchers("/", "/login", "/static/**", "/.well-known/**").permitAll()  // 添加登录页例外
+                .antMatchers("/h2-console/**").permitAll()
+                .mvcMatchers("/actuator/**").permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                // 使用表单登录
+                .loginPage("/login").permitAll() // 设置登录页地址，全员可访问
+                .defaultSuccessUrl("/order")
+                .failureUrl("/login?error=true")  // 建议添加错误参数
+                .loginProcessingUrl("/doLogin")
+                .usernameParameter("user")
+                .passwordParameter("pwd")
+                .and()
+                .httpBasic()
+                .and()
+                // 使用HTTP Basic认证
                 .rememberMe()
-                    .key("binarytea")
-                    .rememberMeParameter("remember")
-                    .tokenValiditySeconds(24 * 60 * 60)
-                    .tokenRepository(persistentTokenRepository(dataSources)) // 配置持久化令牌
-                    .userDetailsService(userDetailsService(dataSources)).and()
+                .key("binarytea")
+                .rememberMeParameter("remember")
+                .tokenValiditySeconds(24 * 60 * 60)
+                .tokenRepository(persistentTokenRepository(dataSources)) // 配置持久化令牌
+                .userDetailsService(userDetailsService(dataSources)).and()
                 .logout()
-                    .logoutSuccessUrl("/")
-                    .logoutRequestMatcher(new OrRequestMatcher(
-                            new AntPathRequestMatcher("/logout", "GET"),
-                            new AntPathRequestMatcher("/logout", "POST")));
+                .logoutSuccessUrl("/")
+                .logoutRequestMatcher(new OrRequestMatcher(
+                        new AntPathRequestMatcher("/logout", "GET"),
+                        new AntPathRequestMatcher("/logout", "POST")))
+                .and()  // 关键连接点
+                .csrf()
+                .ignoringAntMatchers("/h2-console/**", "/actuator/**")  // 忽略多个路径
+                .and()
+                .headers()
+                .frameOptions().disable()  // 允许 iframe
+                .contentSecurityPolicy("script-src 'self' 'unsafe-inline';");  // 允许内联脚本
+
+
     }
 
     @Bean
